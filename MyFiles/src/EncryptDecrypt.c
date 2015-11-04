@@ -19,9 +19,91 @@
 
 #include <EncryptDecrypt.h>
 
-void IMPLEMENT(encrypt)(const char * key, char * str) {
-    provided_encrypt(key,str);
+ //Test1: in fact ,it's ok .but i choose to makeUppercase().
+
+/* char keyroll(char charKey,char charStr) {
+ 	char newChar = (char)((charKey + charStr)%26 + 'A');
+ 	return newChar;
 }
+
+ void IMPLEMENT(encrypt)(const char * key, char * str) {
+    //provided_encrypt(key,str);
+
+    sizeKey = stringLength(key);
+    int i = 0;
+    int j = 0;
+
+    char * keyUpper = duplicateString(key);
+    makeUpperCaseString(keyUpper);
+    makeUpperCaseString(str);
+
+    for(;str[i] != '\0'; ++i, ++j)
+    {
+    	if ((str[i] >= 'A')&& (str[i] <= 'Z')
+    	{
+    		str[i] = keyroll(keyUpper[i % sizeKey],str[i]);
+    	}
+    }
+
+    makeLowerCaseString(str);
+}
+*/
+
+//Ok2: use lowcase, 
+char keyroll(char charKey,char charStr) {
+ 	char newChar = (char)((charKey - 'a' + charStr - 'a')%26 + 'a');
+ 	return newChar;
+}
+
+ void IMPLEMENT(encrypt)(const char * key, char * str) {
+    /*provided_encrypt(key,str);*/
+
+    size_t  sizeKey = stringLength(key);
+    int i = 0;
+    int j = 0;
+
+    char * keyLower = duplicateString(key);
+    makeLowerCaseString(keyLower);
+    makeLowerCaseString(str);
+
+    for(;str[i] != '\0'; ++i, ++j)
+    {
+    	if ((str[i] >= 'a')&& (str[i] <= 'z'))
+    	{
+    		str[i] = keyroll(keyLower[i % (int)sizeKey],str[i]);
+    	}
+    }
+}
+
+
+char keybreak(char charKey,char charCrypt) {
+
+	char newChar = (char)(charCrypt + 'a' -charKey);
+	if (newChar < 'a' ) {
+
+		newChar = (char)(newChar + 26);
+	}
+	
+	return newChar;
+}
+
 void IMPLEMENT(decrypt)(const char * key, char * str) {
-    provided_decrypt(key,str);
+    /*provided_decrypt(key,str);*/
+
+    size_t  sizeKey = stringLength(key);
+    int i = 0;
+    int j = 0;
+
+    char * keyLower = duplicateString(key);
+    makeLowerCaseString(keyLower);
+    makeLowerCaseString(str);
+
+    for(;str[i] != '\0'; ++i, ++j)
+    {
+    	if ((str[i] >= 'a')&& (str[i] <= 'z'))
+    	{
+    		str[i] = keybreak(keyLower[i % (int)sizeKey],str[i]);
+    	}
+    }
 }
+

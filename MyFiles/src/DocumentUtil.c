@@ -199,7 +199,37 @@ void Dec2Bin (short n, int * tab_dec) {
  * @warning the user is responsible for freeing the memory allocated for the new string
  */
 char * IMPLEMENT(computeDocumentNumber)(long id) {
-    return provided_computeDocumentNumber(id);
+    //return provided_computeDocumentNumber(id);
+
+    char * idString;
+    int remainder;
+    char temp[16];
+    int i = 0, j = 0;
+
+    while(id != 0) {
+    	remainder = (char)(id%36);
+    	if (remainder < 10) {
+    		temp[i] = (char)(remainder + '0');
+    	} else {
+    		temp[i] = (char)(remainder - 10 + 'A');
+    	}
+
+    	id = id/36;
+    	++i;
+    }
+    --i;
+
+    idString = (char *)malloc(sizeof(char) * (size_t)(i + 1));
+    if(idString == NULL) {
+    	fatalError("Malloc failed in computeDocumentNumber()!");
+    }
+    while(i >= 0) {
+    	idString[j] = temp[i];
+    	++j;
+    	--i;
+    }
+    idString[j] = '\0';
+    return idString;
 }
 
 /** Create a new string on the heap which represents the date in the format DD/MM/YYYY.
@@ -211,16 +241,34 @@ char * IMPLEMENT(computeDocumentNumber)(long id) {
  * @warning the user is responsible for freeing the memory allocated for the new string
  */
 char * IMPLEMENT(formatDate)(int day, int month, int year) {
-    return provided_formatDate(day, month, year);
+    //return provided_formatDate(day, month, year);
+    char *formatdate =  (char *)malloc(11 * sizeof(char));
+    if(formatdate == NULL) {
+        fatalError("malloc failed in formatDate()!");
+    }
+    sprintf(formatdate, "%02d/%02d/%04d", day, month, year);
+    return formatdate;
 }
+
 
 
 /** Write a string in a binary file
  * @param str the string
  * @param file the file
  */
+
 void IMPLEMENT(writeString)(const char * str, FILE * file) {
-    provided_writeString(str,file);
+    /*provided_writeString(str,file);*/
+
+    size_t len = stringLength(str);
+
+    if(fwrite(&len, sizeof(size_t), 1, file) != 1) {
+    	fatalError("Failed to write length of str in writeString()!");
+    }
+
+    if(fwrite(str, sizeof(char), len, file) != len) {
+    	fatalError("Failed to write str to file in writeString()!");
+    }
 }
 
 /** Read a string from a binary file
@@ -229,5 +277,42 @@ void IMPLEMENT(writeString)(const char * str, FILE * file) {
  * @see writeString()
  */
 char * IMPLEMENT(readString)(FILE * file) {
-    return provided_readString(file);
+    //return provided_readString(file);
+    size_t len;
+    char * result;
+    int n;
+    if((n = fread(&len, sizeof(size_t), 1, file) != 1)) {
+        fprintf(stderr, "Erreur de lecture dans le fichier! %d \n ", n);
+        return NULL;
+    }
+    result = (char *)malloc((len + 1) * sizeof(char));
+    if(result == NULL) {
+        fprintf(stderr, "Erreur d'allocation!\n");
+        exit(-1);
+    }
+    if(fread(result, sizeof(char), len, file) != len) {
+        fprintf(stderr, "Erreur de lecture dans le fichier!\n");
+        return NULL;
+    }
+    result[len] = '\0';
+    return result;
+
+    char * str;
+    size_t len;
+
+    if(fread(&len, sizeof(size_t), 1, file) != 1) {
+    	fatalError("Failed to read length of str in readString!");
+    }
+
+    str = (char *)malloc((len+1) * sizeof(char));
+    if(str == NULL) {
+    	fatalError("malloc failed in readString()!");
+    }
+
+    if(fread(str, sizeof(char), len, file) != len) {
+    	fatalError("failed to read string of file in readString()!");
+    }
+
+    str[len] = '\0';
+    return str;
 }

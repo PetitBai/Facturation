@@ -140,7 +140,9 @@ void IMPLEMENT(copyString)(char * dest, const char * src) {
  */
 void IMPLEMENT(copyStringWithLength)(char * dest, const char * src, size_t destSize) {
     /*provided_copyStringWithLength(dest, src, destSize);*/
-    size_t srcSize = stringLength (src);
+   
+   //Success 1 : This func runs well,but there is a big problem!!!!the table pointer runs away!!!!
+/*    size_t srcSize = stringLength (src);
 
     if (srcSize < destSize) {
         for (; *src != '\0'; ++dest, ++src) {
@@ -154,7 +156,24 @@ void IMPLEMENT(copyStringWithLength)(char * dest, const char * src, size_t destS
     }
 
 
-    *dest = '\0';
+    *dest = '\0';*/
+
+    //Succeed 2 : Now, it's much better.How terrible the experence is !
+    //SkillGet : treat (char *) pointer as array just like it is!!!!! 
+    size_t srcSize = stringLength (src);
+    size_t i = 0;
+
+    if (srcSize < destSize) {
+        for (i = 0; *(src + i) != '\0'; ++i) {
+            *(dest + i) = *(src + i);
+        }
+    } else {
+       
+        for (i = 0; i < destSize-1;  ++i) {
+            *(dest + i) = *(src + i);
+        }
+    }
+    *(dest + i) = '\0';
 }
 
 /** Like the strdup() function. It creates a copy of the string on the heap.
@@ -195,9 +214,6 @@ int IMPLEMENT(icaseStartWith)(const char * start, const char * str) {
     }
 
     return isMatch;
-
-
-
 }
 
 /** Test if the string str ends by the string start, ignoring the case of the characters.
@@ -259,7 +275,7 @@ char * IMPLEMENT(concatenateString)(const char * str1, const char * str2) {
     }
     return concatenation2Str;
 */
-    size_t sizeStr1 = stringLength(str1);
+/*    size_t sizeStr1 = stringLength(str1);
     size_t sizeStr2 = stringLength(str2);
     char * concatenation2Str;
 
@@ -271,8 +287,18 @@ char * IMPLEMENT(concatenateString)(const char * str1, const char * str2) {
     } else {   
     concatenation2Str = (char *) malloc ((sizeStr1 + sizeStr2 ＋1) * sizeof(char));
 
-    copyStringWithLength(concatenation2Str, str1, sizeStr1);
-    copyStringWithLength(concatenation2Str - 1, str2, sizeStr2);
+  //  copyStringWithLength(concatenation2Str, str1, sizeStr1);
+  //  copyStringWithLength(concatenation2Str - 1, str2, sizeStr2);
+
+    while (* str1 != '\0')
+    {
+        *concatenation2Str++ = *str1++; 
+    }
+    while (*str2 != '\0')
+    {
+        *concatenation2Str ++ = *str2++;
+    }
+    *concatenation2Str = '\0';
 
     *concatenation2Str = '\0';
     }
@@ -282,8 +308,41 @@ char * IMPLEMENT(concatenateString)(const char * str1, const char * str2) {
         return NULL;
     } else {
         return 1;
-    }
+    }*/
 
+/*  // Succeed 1
+    char * concatenation2Str;
+
+    size_t sizeStr1 = stringLength(str1);
+    size_t sizeStr2 = stringLength(str2);
+    concatenation2Str = (char *) malloc ((sizeStr1 + sizeStr2 + 1) * sizeof(char));
+
+
+
+    while (* str1 != '\0')
+    {
+        *concatenation2Str++ = *str1++;
+    }
+    while (*str2 != '\0')
+    {
+        *concatenation2Str ++ = *str2++;
+    }
+    *concatenation2Str = '\0';
+ 
+        return concatenation2Str - sizeStr1 - sizeStr2;
+    }*/
+  
+    //Succeed 2 : This is much better, cause I've rewritten the func copyStringWithLength();
+    char * concatenation2Str;
+
+    size_t sizeStr1 = stringLength(str1);
+    size_t sizeStr2 = stringLength(str2);
+    concatenation2Str = (char *) malloc ((sizeStr1 + sizeStr2 + 1) * sizeof(char));
+    
+    copyStringWithLength(concatenation2Str, str1,(sizeStr1 + sizeStr2 + 1) );
+    copyStringWithLength(concatenation2Str + sizeStr1 , str2, (sizeStr1 + sizeStr2 + 1));
+
+    return concatenation2Str;
 /*    assert((strDes != NULL) && (strSrc != NULL));     
     char *address = strDes;     
     while (*strDes != '\0')     
@@ -353,6 +412,27 @@ char * IMPLEMENT(subString)(const char * start, const char * end) {
 //void IMPLEMENT(copyStringWithLength)(char * dest, const char * src, size_t destSize)
 /*--WAY2:first calu size of start ,src,get copyStr = malloc(); copy with len,fin !--*/
 
+ /*   //OK1 :
+    char * subStr;
+
+    subStr= (char *)malloc((sizeSub +1 ) * sizeof(char));
+
+    if (subStr == NULL)
+    {
+        return NULL;
+    } else {
+     size_t i = 0;
+    for (;i < sizeSub ;++i){
+        *(subStr+i) = *(start + i);
+
+    }
+
+    *(subStr + i ) = '\0';
+
+    return subStr ;
+    } */
+
+/*    //Test1: wrong with copyStringWithLength(,,!*!);
     size_t sizeStart = stringLength(start);
     size_t sizeEnd = stringLength(end);
     size_t sizeSub = sizeStart - sizeEnd;
@@ -361,7 +441,17 @@ char * IMPLEMENT(subString)(const char * start, const char * end) {
 
     copyStringWithLength(subStr, start, sizeSub);
 
-    return subStr;
+    return subStr;*/
+
+    //OK2,much better!
+    size_t sizeStart = stringLength(start);
+    size_t sizeEnd = stringLength(end);
+    size_t sizeSub = sizeStart - sizeEnd;
+
+    char * subStr = (char *)malloc( (sizeSub+1) * sizeof(char));
+
+    copyStringWithLength(subStr, start, sizeSub + 1);
+    return subStr ;
 
 }
 
@@ -479,26 +569,43 @@ void IMPLEMENT(makeLowerCaseString)(char * str) {
 char * IMPLEMENT(insertString)(const char * src, int insertPosition, const char * toBeInserted,
         int insertLength) {
     //return provided_insertString(src, insertPosition, toBeInserted, insertLength);
+   
+/*    //Test1 : wrong with copyStringWithLength(), those paras are confused .
     size_t sizeSrc = stringLength(src);
-    //size_t sizeToBeInserted = stringLength(toBeInserted);
-    char * insertString;
     
-    insertString = (char *)malloc((sizeSrc + insertLength + 1)*(sizeof(char)));//
-    if (insertString == NULL)
+    char * insertStr;
+    
+    insertStr = (char *)malloc((sizeSrc + insertLength + 1)*(sizeof(char)));//
+    if (insertStr == NULL)
     {
         fprintf(stderr,
-            "\n Malloc() Failed in the founction insertString().\n");
+            "\n Malloc() Failed in insertString().\n");
         return NULL;
     } else {
-        copyStringWithLength(insertString, src, insertPosition);
-
+        copyStringWithLength(insertStr, src, insertPosition);
+        copyStringWithLength(insertStr+insertPosition, toBeInserted, insertLength + 1);
+        copyStringWithLength(insertStr + insertPosition + insertLength, insertStr + insertPosition, sizeSrc);
     }
 
+    return insertStr;*/
 
+    //OK1 : olala
+    size_t sizeSrc = stringLength(src);
+    char * insertStr;
 
+    insertStr = (char *)malloc((sizeSrc + (size_t)insertLength + 1)*(sizeof(char)));
+    if (insertStr == NULL)
+    {
+        fprintf(stderr,
+            "\n Malloc() Failed In insertString().\n");
+        return NULL;
+    } else {
+        copyStringWithLength(insertStr, src, (size_t)insertPosition +1);
+        copyStringWithLength(insertStr + insertPosition, toBeInserted, (size_t)insertLength + 1);
+        copyStringWithLength(insertStr + insertPosition + insertLength, src + insertPosition, sizeSrc + 1);
+    }
 
-
-
+    return insertStr;
 
 
 }

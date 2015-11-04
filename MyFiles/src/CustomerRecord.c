@@ -51,12 +51,17 @@
 void IMPLEMENT(CustomerRecord_setValue_name)(CustomerRecord * record, const char * value)
 {
   /*provided_CustomerRecord_setValue_name(record, value);*/
+ 
+  //it's right! But why not use func already existed?
+  //Never reinvent wheels!!!!
   /*int i = 0;
   for (;*(value + i) != '\0'; ++i)
   {
     record->name[i] = *(value + i);
   }
   record->name[i] = '\0';*/
+  
+  //TODO:why is possibel to write a char * to char[60]?
   copyStringWithLength(record->name, value, CUSTOMERRECORD_NAME_SIZE)
 
 }
@@ -64,101 +69,131 @@ void IMPLEMENT(CustomerRecord_setValue_name)(CustomerRecord * record, const char
 void IMPLEMENT(CustomerRecord_setValue_address)(CustomerRecord * record, const char * value)
 {
   /*provided_CustomerRecord_setValue_address(record, value);*/
-  int i = 0;
+  
+  /*int i = 0;
   for (;*(value + i) != '\0'; ++i)
   {
     record->address[i] = *(value + i);
   }
-  record->address[i] = '\0';
+  record->address[i] = '\0';*/
+
+  copyStringWithLength(record->address, value, CUSTOMERRECORD_ADDRESS_SIZE);
+
+
 }
 
 void IMPLEMENT(CustomerRecord_setValue_postalCode)(CustomerRecord * record, const char * value)
 {
   /*provided_CustomerRecord_setValue_postalCode(record, value);*/
-      int i = 0;
+  
+  /* int i = 0;
     for (;*(value + i) != '\0'; ++i)
     {
       record->postalCode[i] = *(value + i);
     }
 
-    record->postalCode[i] = '\0';
+    record->postalCode[i] = '\0'; */
+
+  copyStringWithLength(record->postalCode, value, CUSTOMERRECORD_POSTALCODE_SIZE);
 }
 
 void IMPLEMENT(CustomerRecord_setValue_town)(CustomerRecord * record, const char * value)
 {
   /*provided_CustomerRecord_setValue_town(record, value);*/
-      int i = 0;
+  /*    int i = 0;
     for (;*(value + i) != '\0'; ++i)
     {
       record->town[i] = *(value + i);
     }
 
-    record->town[i] = '\0';
+    record->town[i] = '\0';*/
+
+  copyStringWithLength(record->town, value, CUSTOMERRECORD_TOWN_SIZE);
 }
 
 char * IMPLEMENT(CustomerRecord_getValue_name)(CustomerRecord * record)
 {
   //return provided_CustomerRecord_getValue_name(record);
+  
+  //it's wrong! it's only return a address, rather than a string.
   /*char * tmps = record->name;
   return tmps;*/
+
   return duplicateString(record->name);
 
 }
 
 char * IMPLEMENT(CustomerRecord_getValue_address)(CustomerRecord * record)
 {
-  return provided_CustomerRecord_getValue_address(record);
+  //return provided_CustomerRecord_getValue_address(record);
+  
+  return duplicateString(record->address);
+
 }
 
 char * IMPLEMENT(CustomerRecord_getValue_postalCode)(CustomerRecord * record)
 {
-  return provided_CustomerRecord_getValue_postalCode(record);
+  //return provided_CustomerRecord_getValue_postalCode(record);
+
+  return duplicateString(record->postalCode);
 }
 
 char * IMPLEMENT(CustomerRecord_getValue_town)(CustomerRecord * record)
 {
-  return provided_CustomerRecord_getValue_town(record);
+  //return provided_CustomerRecord_getValue_town(record);
+
+  return duplicateString(record->town); 
 }
 
 void IMPLEMENT(CustomerRecord_init)(CustomerRecord * record)
 {
-  provided_CustomerRecord_init(record);
+  //provided_CustomerRecord_init(record);   
+
+  //
+    unsigned int i;
+    
+    for(i = 0; i < CUSTOMERRECORD_NAME_SIZE; ++i) {
+        record->name[i] = '\0';
+    }
+    for(i = 0; i < CUSTOMERRECORD_ADDRESS_SIZE; ++i) {
+        record->address[i] = '\0';
+    }
+    for(i = 0; i < CUSTOMERRECORD_POSTALCODE_SIZE; ++i) {
+        record->postalCode[i] = '\0';
+    }
+    for(i = 0; i < CUSTOMERRECORD_TOWN_SIZE; ++i) {
+        record->town[i] = '\0';
+    }
 }
 
 void IMPLEMENT(CustomerRecord_finalize)(CustomerRecord * record)
 {
-  provided_CustomerRecord_finalize(record);
+  //provided_CustomerRecord_finalize(record);
+
+    //how to free a struct with pointer?
+
+  //it's all wrong!!!!because it doesn't use malloc!!!ni free ge pi!!!
+  // free(record->name);
+  // free(record->address);
+  // free(record->postalCode);
+  // free(record->town);
+
+  // record->name = NULL;
+  // record->address = NULL;
+  // record->postalCode = NULL;
+  // record->town = NULL;
+
+  // record->name = duplicateString("");
+  // record->address = duplicateString("");
+  // record->postalCode = duplicateString("");
+  // record->town = duplicateString("");
+
+  if(record == NULL) {
+      fatalError("the record doesn't exist in CustomerRecord_finalize()!");
+  } else {
+    record = NULL;
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -173,41 +208,21 @@ On prendra soin de ne pas écrire d'octets de padding dans la fichier.
 void IMPLEMENT(CustomerRecord_read)(CustomerRecord * record, FILE * file)
 {
   //provided_CustomerRecord_read(record, file);
-  file = record -> 
+
+  //read one customerrecord from file, and sent the value to record.
+  // the return value of func fread is the number of excute times, so should be 1.
+  //if != 1,there is sth going wrong! 
+  if(fread(record, CUSTOMERRECORD_SIZE, 1, file) != 1) {
+    fatalError("CustomerRecord_read Failed!");
+  }
+
 }
 
 void IMPLEMENT(CustomerRecord_write)(CustomerRecord * record, FILE * file)
 {
-  provided_CustomerRecord_write(record, file);
+  //provided_CustomerRecord_write(record, file);
+  if(fwrite(record,CUSTOMERRECORD_SIZE, 1, file) != 1) {
+    fatalError("CustomerRecord_write Failed!");
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

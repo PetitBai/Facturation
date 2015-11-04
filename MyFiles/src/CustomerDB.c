@@ -31,35 +31,95 @@ const char * CUSTOMERDB_FILENAME = BASEPATH "/data/Customer.db";
 
 CustomerDB * IMPLEMENT(CustomerDB_create)(const char * filename) {
     //return provided_CustomerDB_create(filename);
-    CustomerDB * customerDB;
-    customerDB = (CustomerDB *)malloc(sizeof(CustomerDB));
 
-    if (failed)
-    {
-        /* code */ return NULL;
-    } else {
-        file operation;
-        {failed} else {not failed};
+
+    CustomerDB * db;
+    db = (CustomerDB *)malloc(sizeof(CustomerDB));
+    if (db == NULL) {
+        fatalError("malloc failed in CustomerDB_create()!");
     }
-     free（）；
+
+    db->file = fopen(filename, "w+");
+    if(db->file == NULL) {
+        fprintf(stderr, "Failed to open the file in CustomerDB_create()!");
+        free(db);
+        return NULL;
+    } 
+
+    db->recordCount = 0;
+    if(fwrite(&(db->recordCount), sizeof(int), 1, db->file) != 1) {
+        fprintf(stderr, "Failed to write in the file in CustomerDB_create()! ");
+        fclose(db->file);
+        free(db);
+        return NULL;
+    }
+
+    return db;
+
 }
 
 
 
 CustomerDB * IMPLEMENT(CustomerDB_open)(const char * filename) {
-    return provided_CustomerDB_open(filename);
+    /*return provided_CustomerDB_open(filename);*/
+    CustomerDB * db;
+    db = (CustomerDB *)malloc(sizeof(CustomerDB));
+    if (db == NULL) {
+        fatalError("malloc failed in CustomerDB_create()!");
+    }
+
+    db->file = fopen(filename, "w+");
+    if(db->file == NULL) {
+        fprintf(stderr, "Failed to open the file in CustomerDB_create()!");
+        free(db);
+        return NULL;
+    } 
+
+    db->recordCount = 0;
+    if(fread(&(db->recordCount), sizeof(int), 1, db->file) != 1) {
+        fprintf(stderr, "Failed to write in the file in CustomerDB_create()! ");
+        fclose(db->file);
+        free(db);
+        return NULL;
+    }
+
+    return db;
+
 }
 
 CustomerDB * IMPLEMENT(CustomerDB_openOrCreate)(const char * filename) {
-    return provided_CustomerDB_openOrCreate(filename);
+    //return provided_CustomerDB_openOrCreate(filename);
+   
+       
+    CustomerDB *db;
+    db = CustomerDB_open(filename);
+
+    if(db == NULL) {
+        db = CustomerDB_create(filename);
+    } 
+
+    return db;
+
 }
 
 void IMPLEMENT(CustomerDB_close)(CustomerDB * customerDB) {
-    provided_CustomerDB_close(customerDB);
+    //provided_CustomerDB_close(customerDB);
+
+    //fseek() to set file pointer to a special point.
+    fseek(customerDB->file, 0, 0);
+    //Before closing, write the count. 
+    if(fwrite(&(customerDB->recordCount), sizeof(int), 1, customerDB->file) != 1) {
+        fatalError("Failed to write recordCount in CustomerDB_close()!");
+    }
+    //finally, fclose
+    fclose(customerDB->file);
 }
 
 int IMPLEMENT(CustomerDB_getRecordCount)(CustomerDB * customerDB) {
-    return provided_CustomerDB_getRecordCount(customerDB);
+    //return provided_CustomerDB_getRecordCount(customerDB);
+
+    //so direct, are you still familiar?
+    return customerDB->recordCount;
 }
 
 char * CustomerDB_getFieldValueAsString(CustomerDB * customerDB, int recordIndex, int field) {
@@ -76,21 +136,80 @@ char * CustomerDB_getFieldValueAsString(CustomerDB * customerDB, int recordIndex
 }
 
 void IMPLEMENT(CustomerDB_appendRecord)(CustomerDB * customerDB, CustomerRecord *record) {
-    provided_CustomerDB_appendRecord(customerDB, record);
+    //provided_CustomerDB_appendRecord(customerDB, record);
+
+    //fseek(customerDB->file, (long) sizeof(int)(long) + (customerDB->recordCount) * CUSTOMERRECORD_SIZE, 0);
+    
+    fseek(customerDB->file, 0, 2);
+    if(fwrite(record, CUSTOMERRECORD_SIZE, 1, customerDB->file) != 1) {
+        fatalError("Failed to appenRecord in CustomerDB_appendRecord()"!);
+    } else {
+        ++(customerDB->recordCount);
+    }
 }
 
 void IMPLEMENT(CustomerDB_insertRecord)(CustomerDB * customerDB, int recordIndex, CustomerRecord * record) {
-    provided_CustomerDB_insertRecord(customerDB, recordIndex, record);
+    //provided_CustomerDB_insertRecord(customerDB, recordIndex, record);
+
+    int i;
+    CustomerRecord temprecord;
+
+    if(recordIndex >= 0 && recordIndex < customerDB->recordCount) {
+        i = customerDB->recordCount - 1;
+        while(i >= recordIndex) {
+            CustomerDB_readRecord(customerDB, i, &temprecord);
+            CustomerDB_writeRecord(customerDB, i+1, &temprecord);
+            --i;
+        }
+        CustomerDB_writeRecord(customerDB, recordIndex, record);
+        ++(customerDB->recordCount);
+    } else {
+        fatalError("recordIndex is illegal!");
+    }
+
+
 }
 
 void IMPLEMENT(CustomerDB_removeRecord)(CustomerDB * customerDB, int recordIndex) {
-    provided_CustomerDB_removeRecord(customerDB, recordIndex);
+    //provided_CustomerDB_removeRecord(customerDB, recordIndex);
+
+   // if use CustomerRecord * record, then must malloc, intital, free ...it is waste of time 
+    CustomerRecord  record;
+
+    if(recordIndex >= 0 && recordIndex < customerDB->recordCount) {
+        while(recordIndex < customerDB->recordCount - 1) {
+            CustomerDB_readRecord(customerDB, recordIndex + 1, &record);
+            CustomerDB_writeRecord(customerDB, recordIndex, &record);
+            ++recordIndex;
+        }
+
+        --customerDB->recordCount;
+    } else {
+        fatalError("recordIndex is illegal!");
+    }
 }
 
 void IMPLEMENT(CustomerDB_readRecord)(CustomerDB * customerDB, int recordIndex, CustomerRecord * record) {
-    provided_CustomerDB_readRecord(customerDB, recordIndex, record);
+    //provided_CustomerDB_readRecord(customerDB, recordIndex, record);
+    if(recordIndex >= 0 && recordIndex < customerDB->recordCount) {
+
+    //convertion to (long) to combine size_t and int 
+        fseek(customerDB->file, (long) sizeof(int) + (long) recordIndex * (long) CUSTOMERRECORD_SIZE, 0);
+        CustomerRecord_read(record, customerDB->file);
+    } else {
+        fatalError("recordIndex is illegal!");
+    }
 }
 
 void IMPLEMENT(CustomerDB_writeRecord)(CustomerDB * customerDB, int recordIndex, CustomerRecord * record) {
-    provided_CustomerDB_writeRecord(customerDB, recordIndex, record);
+    //provided_CustomerDB_writeRecord(customerDB, recordIndex, record);
+
+    if(recordIndex >= 0 && recordIndex < customerDB->recordCount) {
+        fseek(customerDB->file, (long) sizeof(int) + (long) recordIndex * (long) CUSTOMERRECORD_SIZE, 0);
+        CustomerRecord_write(record, customerDB->file);
+    } else if(recordIndex == customerDB->recordCount) {
+        CustomerDB_appendRecord(customerDB, record);
+    } else {
+        fatalError("recordIndex is illegal!");
+    }
 }

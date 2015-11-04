@@ -44,7 +44,7 @@
  */
 OperatorTable * IMPLEMENT(OperatorTable_create)(void) {
     //return provided_OperatorTable_create();
-    OperatorTable *newTable;
+ /*   OperatorTable *newTable;
     
     newTable = (OperatorTable *) malloc (sizeof(OperatorTable));
     //newTable.recordCount = 0;// n+1
@@ -56,6 +56,27 @@ OperatorTable * IMPLEMENT(OperatorTable_create)(void) {
 
     //TODO: relate tables
 
+    return newTable;*/
+
+    // After Malloc(), there must be a check, whether newSpace == NULL?
+    //char *** records, a three-star pointer, in fact, it's easy to understand
+    //char is char
+    //char * is line
+    //char ** is page
+    //char *** is book
+    //char **** is libary.
+    //so, records is a book. recordId is page number. recordCount is the total number.
+    //records[Id] to reach the page,in the page there are 2 lines,[0]:username,[1]:password.
+    //so, it's very clear and simple.
+    OperatorTable *newTable = (OperatorTable *)malloc(sizeof(OperatorTable));
+
+    if(newTable == NULL) {
+        fatalError("Malloc failed in OperatorTable_create()!");
+    }
+
+    newTable->recordCount = 0;
+    newTable->records = NULL;
+
     return newTable;
 }
 
@@ -65,12 +86,50 @@ OperatorTable * IMPLEMENT(OperatorTable_create)(void) {
  */
 void IMPLEMENT(OperatorTable_destroy)(OperatorTable * table) {
     //provided_OperatorTable_destroy(table);
-    while (table) {
-        //TODO: delete relations
 
-        free (table);
+    //To destory a book, from end page to head page, destory line by line.
+    // while (table) {
+    //     //TODO: delete relations
+    //     int i = 0;
+    //     for (;i < table->recordCount; ++i){
+    //         free(table->records[i][0]);
+    //             table->records[i][0] = NULL;
+    //         free(table->records[i][1]);
+    //             table->records[i][1] = NULL;
+    //         free(table->records[i]);
+    //             table->records[i] = NULL;    
+    //     }
+
+    //     free(table->records);
+    //         table->records = NULL;
+
+    //     free (table);
+    // }
+
+    //while is no use, only faults. Why?
+    // int i; for(i = 0;XX;++i),better!
+    //So many =NULL, is necessary?
+    if(table) {
+    int i;
+    for (i = 0;i < table->recordCount; ++i){
+        free(table->records[i][0]);
+            table->records[i][0] = NULL;
+        free(table->records[i][1]);
+            table->records[i][1] = NULL;
+        free(table->records[i]);
+            table->records[i] = NULL;
+    }
+
+    free(table->records);
+        table->records = NULL;
+
+    free (table);
+    } else {
+        fatalError("The table don't exist is OperatorTable_destroy()");
     }
 }
+
+
 
 /** Load a table of operators from a file.
  * @param filename the file name
@@ -83,14 +142,51 @@ void IMPLEMENT(OperatorTable_destroy)(OperatorTable * table) {
  */ 
 OperatorTable * IMPLEMENT(OperatorTable_loadFromFile)(const char * filename) {
     //return provided_OperatorTable_loadFromFile(filename);
-    newTable = OperatorTable_create ();
-    while (filename) {
-        newTable->records[newTable->recordCount][0] = (*filename)++;
-        newTable->records[newTable->recordCount][1] = (*filename)++;
-        ++newTable->recordCount; //TODO:maybe need +1
+
+    int i;
+    size_t nameLen, passwordLen;
+    char tempName[OPERATORTABLE_MAXNAMESIZE + 1];
+    char tempPassword[OPERATORTABLE_MAXPASSWORDSIZE + 1];
+    OperatorTable * table = OperatorTable_create();
+    FILE * file;
+
+    file = fopen(filename, "r");
+    if(file == NULL) {
+        fatalError("Failed to read file in OperatorTable_loadFromFile()!");
     }
 
-    return newTable;
+    //fscanf '%d' to a "int *", so to &table->recordCount, not tbale->recordCount directly. Like scanf()!!
+    fscanf(file, "%d\n", &table->recordCount);
+
+    table->records = (char ***)malloc((size_t)(table->recordCount) * sizeof(char **));
+    if(table->records == NULL) {
+        fatalError("malloc failed in OperatorTable_loadFromFile()!");
+    }
+
+    for(i = 0; i < table->recordCount; ++i) {
+        table->records[i] = (char **)malloc(sizeof(char *) * 2);
+        if (table->records[i] == NULL) {
+            fatalError("malloc failed in OperatorTable_loadFromFile()!");        
+        }
+
+        fgets(tempName, OPERATORTABLE_MAXNAMESIZE + 1, file);
+        fgets(tempPassword, OPERATORTABLE_MAXPASSWORDSIZE + 1, file);
+
+        nameLen = stringLength(tempName);
+        passwordLen =stringLength(tempPassword);
+        tempName[nameLen - 1] = '\0';
+        tempPassword[passwordLen - 1] = '\0';
+
+        decrypt(OperatorCryptKey, tempName);
+        decrypt(OperatorCryptKey, tempPassword);
+
+        table->records[i][0] = duplicateString(tempName);
+        table->records[i][1] = duplicateString(tempPassword);
+    }
+
+    fclose(file);
+
+    return table;
 }
 
 /** Save a table of operators to a file.
@@ -101,6 +197,31 @@ OperatorTable * IMPLEMENT(OperatorTable_loadFromFile)(const char * filename) {
 void IMPLEMENT(OperatorTable_saveToFile)(OperatorTable * table, const char * filename) {
     //provided_OperatorTable_saveToFile(table, filename);
 
+
+    int i;
+    char tempName[OPERATORTABLE_MAXNAMESIZE];
+    char tempPassword[OPERATORTABLE_MAXPASSWORDSIZE];
+    FILE * file;
+
+    file = fopen(filename, "w");
+    if(file == NULL) {
+        fatalError("Failed to open/create file in OperatorTable_saveToFile()!");
+    }
+
+    fprintf(file, "%d\n", table->recordCount);
+
+    for(i = 0; i < table->recordCount; ++i) {
+        copyStringWithLength(tempName, table->records[i][0], OPERATORTABLE_MAXNAMESIZE);
+        copyStringWithLength(tempPassword, table->records[i][1],OPERATORTABLE_MAXPASSWORDSIZE);
+
+        encrypt(OperatorCryptKey, tempName);
+        encrypt(OperatorCryptKey, tempPassword);
+
+        fprintf(file, "%s\n", tempName);
+        fprintf(file, "%s\n", tempPassword);
+    }
+
+    fclose(file);
 }
 
 /** Get the number of records of a table of operators
@@ -110,10 +231,18 @@ void IMPLEMENT(OperatorTable_saveToFile)(OperatorTable * table, const char * fil
  */
 int IMPLEMENT(OperatorTable_getRecordCount)(OperatorTable * table) {
     //return provided_OperatorTable_getRecordCount(table);
+    //it's wrong!
+    // if (table) {
+    //     return table -> recordCount;
+    // } else {
+    //     //it's wrong! the type of func is INT, NULL only use for pointer func
+    //     return NULL;
+    // }
+
     if (table) {
         return table -> recordCount;
     } else {
-        return NULL;
+        fatalError("The table don't exist in OperatorTable_getRecordCount() !");
     }
 }
 
@@ -140,7 +269,7 @@ const char * IMPLEMENT(OperatorTable_getName)(OperatorTable * table, int recordI
  */
 const char * IMPLEMENT(OperatorTable_getPassword)(OperatorTable * table, int recordIndex) {
     //return provided_OperatorTable_getPassword(table, recordIndex);
-     if (recordIndex >= 0 && recordIndex <= table->recordCount ) {
+    if (recordIndex >= 0 && recordIndex <= table->recordCount ) {
         return table ->records[recordIndex][1];
     } else {
         return NULL;
@@ -160,15 +289,27 @@ const char * IMPLEMENT(OperatorTable_getPassword)(OperatorTable * table, int rec
 */
 int IMPLEMENT(OperatorTable_findOperator)(OperatorTable * table, const char * name) {
     //return provided_OperatorTable_findOperator(table, name);
-    for (int recordIndex = 0; recordIndex <= table->recordCount; ++recordIndex) {
-        int flag = cmpSTR (table->records[recordIndex][0],name);
-        while (flag = 1) {
-            //TODO: return and break ,who is in front?
-            //TODO: break while or for!!!!
-            return recordIndex;
-            break;
-        }
-    return -1;
+    //it's not good enough.
+    // for (int recordIndex = 0; recordIndex <= table->recordCount; ++recordIndex) {
+    //     int flag = compareString(table->records[recordIndex][0],name);
+    //     while (flag == 0) {
+    //         //TODO: return and break ,who is in front?
+    //         //TODO: break while or for!!!!
+    //         return recordIndex;
+            
+    //     }
+    // return -1;
+
+    // for the func of find, it's better to use while, rather than for/break.
+    int i = 0;
+    while(i < table->recordCount && compareString(table->records[i][0], name) != 0) {
+        ++i;
+    }
+    if(i < table->recordCount) {
+        return i;
+    } else {
+        return -1;
+    }
 }
 
 /** Define or change the password of an operator
@@ -184,10 +325,27 @@ int IMPLEMENT(OperatorTable_findOperator)(OperatorTable * table, const char * na
  **/
 int IMPLEMENT(OperatorTable_setOperator)(OperatorTable * table, const char * name, const char * password) {
     //return provided_OperatorTable_setOperator(table, name, password);
-    recordIndex = OperatorTable_findOperator (table, name);
-    while (recordIndex != -1) {
-        table->records[recordIndex][1] = password;    
-    } 
+    int recordIndex;
+
+    recordIndex = OperatorTable_findOperator(table, name);
+
+    if(recordIndex == -1) {
+        recordIndex = table->recordCount;
+        ++(table->recordCount);
+        table->records = (char ***)realloc(table->records, (size_t)(table->recordCount) * sizeof(char **));
+        if(table->records == NULL) {
+            fatalError("realloc() failed in OperatorTable_setOperator()!");
+        }
+
+        table->records[recordIndex] = (char **)malloc(2 * sizeof(char *));
+        table->records[recordIndex][0] = duplicateString(name);
+        table->records[recordIndex][1] = duplicateString(password);
+    } else {
+        free(table->records[recordIndex][0]);
+        free(table->records[recordIndex][1]);
+        table->records[recordIndex][0] = duplicateString(name);
+        table->records[recordIndex][1] = duplicateString(password);
+    }
 
     return recordIndex;
 }
@@ -205,10 +363,28 @@ int IMPLEMENT(OperatorTable_setOperator)(OperatorTable * table, const char * nam
 void IMPLEMENT(OperatorTable_removeRecord)(OperatorTable * table, int recordIndex) {
     //provided_OperatorTable_removeRecord(table, recordIndex);
     //Can chang [index] directly? 
-    for (; recordIndex <= table->recordCount; ++recordIndex) {
-        table->records[recordIndex][0] = table->records[recordIndex+1][0]; 
-        table->records[recordIndex][1] = table->records[recordIndex+1][1]; 
+    int i;
+    if (recordIndex >= 0 && recordIndex < table->recordCount) {
+        free(table->records[recordIndex][0]);
+            table->records[recordIndex][0] = NULL;
+        free(table->records[recordIndex][1]);
+            table->records[recordIndex][1] = NULL;
+        free(table->records[recordIndex]);
+        
+        --table->recordCount;
+        
+        for (i = recordIndex; i < table->recordCount; ++i) {
+            table->records[i] = table->records[i + 1];
+        }
+
+        table->records = (char ***)realloc(table->records, (size_t)(table->recordCount) * sizeof(char **));
+        if(table->records == NULL) {
+            fatalError("realloc() failed in OperatorTable_removeRecord()!");
+        }
+
+    } else {
+        fatalError("recordIndex is illegal!");
     }
-    --recordCount;
+    
 }
 
